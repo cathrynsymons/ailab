@@ -1,0 +1,18 @@
+{
+    "name": "tutorial",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "appId": "3a800805-72f3-4f30-95a8-dc7eb5604225",
+            "appPassword": "aTLj/d(&fkZk@Tdfe@lcP%9|kso^4",
+            "endpoint": "https://chatbot-cjs.azurewebsites.net/api/messages",
+            "id": "7716ec90-02fb-11eb-9ed8-8164f3573c12",
+            "name": "https://chatbot-cjs.azurewebsites.net/api/messages"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "overrides": null,
+    "path": "C:\\Users\\cathr\\source\\repos\\ailab\\BuildAnIntelligentBot\\config\\tutorial.bot"
+}

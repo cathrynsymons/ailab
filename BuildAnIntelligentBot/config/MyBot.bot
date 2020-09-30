@@ -1,0 +1,18 @@
+{
+    "name": "MyBot",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "appId": "",
+            "appPassword": "",
+            "endpoint": "http://localhost:3978/api/messages",
+            "id": "ef33fd90-02ff-11eb-97dd-d16a52f960f3",
+            "name": "http://localhost:3978/api/messages"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "overrides": null,
+    "path": "C:\\Users\\cathr\\source\\repos\\ailab\\BuildAnIntelligentBot\\config\\MyBot.bot"
+}
