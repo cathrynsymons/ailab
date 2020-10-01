@@ -9,6 +9,9 @@ using ChatBot.Dialogs;
 using ChatBot.Models;
 using ChatBot.Services;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.Luis;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.AI.QnA;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -33,23 +36,51 @@ namespace ChatBot
         // Add text to speech service
 
         // Add Dialogs set
+        private readonly DialogSet _dialogs;
 
         // Add Luis Recognizer
+        protected LuisRecognizer _luis;
 
-        public EchoBot(EchoBotAccessors accessors, IOptions<MySettings> config)
+        public EchoBot(EchoBotAccessors accessors, IOptions<MySettings> config, LuisRecognizer luisRecognizer, QnAMaker qna)
         {
             _accessors = accessors ?? throw new System.ArgumentNullException(nameof(accessors));
+            QnA = qna ?? throw new ArgumentNullException(nameof(qna));
 
             // Initialize the dialogs
+            _dialogs = new DialogSet(_accessors.ConversationDialogState);
 
             // Initialize the TTSS
 
             // Initialize the LUIS recognizer
+            _luis = luisRecognizer;
 
             // Register the dialog
+            _dialogs.Add(new ReservationDialog(_accessors.ReservationState, null));
+        }
+
+        private async Task TodaysSpecialtiesHandlerAsync(ITurnContext context)
+        {
+            var actions = new[]
+            {
+                new CardAction(type: ActionTypes.ShowImage, title: "Carbonara", value: "Carbonara", image: $"{BotConstants.Site}/carbonara.jpg"),
+                new CardAction(type: ActionTypes.ShowImage, title: "Pizza", value: "Pizza", image: $"{BotConstants.Site}/pizza.jpg"),
+                new CardAction(type: ActionTypes.ShowImage, title: "Lasagna", value: "Lasagna", image: $"{BotConstants.Site}/lasagna.jpg"),
+            };
+
+            var cards = actions
+              .Select(x => new HeroCard
+              {
+                  Images = new List<CardImage> { new CardImage(x.Image) },
+                  Buttons = new List<CardAction> { x },
+              }.ToAttachment())
+              .ToList();
+            var activity = (Activity)MessageFactory.Carousel(cards, "For today we have:");
+
+            await context.SendActivityAsync(activity);
         }
 
         // Add QnAMaker
+        private QnAMaker QnA { get; } = null;
 
         /// <summary>
         /// Every conversation turn for our Echo Bot will call this method.
@@ -68,12 +99,65 @@ namespace ChatBot
         {
             if (turnContext.Activity.Type == ActivityTypes.Message)
             {
+                var dialogContext = await _dialogs.CreateContextAsync(turnContext, cancellationToken);
+                var dialogResult = await dialogContext.ContinueDialogAsync(cancellationToken);
                 if (!turnContext.Responded)
                 {
-                    // Handle LUIS intents recognition
+                    switch (dialogResult.Status)
+                    {
+                        case DialogTurnStatus.Empty:
+                            // Check LUIS model
+                            var luisResults = await _luis.RecognizeAsync(turnContext, cancellationToken).ConfigureAwait(false);
+                            var topScoringIntent = luisResults?.GetTopScoringIntent();
+                            var topIntent = topScoringIntent.Value.score > 0.5 ? topScoringIntent.Value.intent : string.Empty;
+                            switch (topIntent) // need one case for each Intent in Luis
+                            {
+                                case "TodaysSpeciality":    //correct tutorial spelling
+                                    await TodaysSpecialtiesHandlerAsync(turnContext);
+                                    break;
+                                case "ReserveTable":
+                                    var amountPeople = luisResults.Entities["AmountPeople"] != null ? (string)luisResults.Entities["AmountPeople"]?.First : null;
+                                    var time = GetTimeValueFromResult(luisResults);
+                                    await ReservationHandlerAsync(dialogContext, amountPeople, time, cancellationToken);
+                                    break;
+                                default:
+                                    var answers = await this.QnA.GetAnswersAsync(turnContext);
+
+                                    if (answers is null || answers.Count() == 0)
+                                    {
+                                        await turnContext.SendActivityAsync("Sorry, I didn't understand that.");
+                                    }
+                                    else if (answers.Any())
+                                    {
+                                        // If the service produced one or more answers, send the first one.
+                                        await turnContext.SendActivityAsync(answers[0].Answer);
+                                    }
+                                    break;
+                            }
+
+                            break;
+                        case DialogTurnStatus.Waiting:
+                            // The active dialog is waiting for a response from the user, so do nothing.
+                            break;
+                        case DialogTurnStatus.Complete:
+                            await dialogContext.EndDialogAsync();
+                            break;
+                        default:
+                            await dialogContext.CancelAllDialogsAsync();
+                            break;
+                    }
                 }
 
-                // Save states in the accessor
+                // Get the conversation state from the turn context.
+                var state = await _accessors.ReservationState.GetAsync(turnContext, () => new ReservationData());
+
+                // Set the property using the accessor.
+                await _accessors.ReservationState.SetAsync(turnContext, state);
+
+                // Save the new state into the conversation state.
+                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                await _accessors.UserState.SaveChangesAsync(turnContext);
+
             }
             else if (turnContext.Activity.Type == ActivityTypes.ConversationUpdate && turnContext.Activity.MembersAdded.FirstOrDefault()?.Id == turnContext.Activity.Recipient.Id)
             {
@@ -81,5 +165,26 @@ namespace ChatBot
                 await turnContext.SendActivityAsync(msg);
             }
         }
+
+        private string GetTimeValueFromResult(RecognizerResult result)
+        {
+            var timex = (string)result.Entities["datetime"]?.First["timex"].First;
+            if (timex != null)
+            {
+                timex = timex.Contains(":") ? timex : $"{timex}:00";
+                return DateTime.Parse(timex).ToString("MMMM dd \\a\\t HH:mm tt");  //errors if no date in timex
+            }
+
+            return null;
+        }
+
+        private async Task ReservationHandlerAsync(DialogContext dialogContext, string amountPeople, string time, CancellationToken cancellationToken)
+        {
+            var state = await _accessors.ReservationState.GetAsync(dialogContext.Context, () => new ReservationData(), cancellationToken);
+            state.AmountPeople = amountPeople;
+            state.Time = time;
+            await dialogContext.BeginDialogAsync(nameof(ReservationDialog));
+        }
+
     }
 }

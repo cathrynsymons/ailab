@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27428.2005
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30517.126
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatBot", "ChatBot\ChatBot.csproj", "{0A7004A4-740F-4C52-B535-3EED31BBE294}"
+EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "WebProject1", "PythonVS\WebProject1\WebProject1.pyproj", "{50E5703C-FBEA-4361-87B3-05F4228BFE26}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{0A7004A4-740F-4C52-B535-3EED31BBE294}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0A7004A4-740F-4C52-B535-3EED31BBE294}.Release|x64.ActiveCfg = Release|Any CPU
 		{0A7004A4-740F-4C52-B535-3EED31BBE294}.Release|x64.Build.0 = Release|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Debug|x64.Build.0 = Debug|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Release|x64.ActiveCfg = Release|Any CPU
+		{50E5703C-FBEA-4361-87B3-05F4228BFE26}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

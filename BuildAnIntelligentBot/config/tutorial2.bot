@@ -1,0 +1,18 @@
+{
+    "name": "tutorial2",
+    "description": "",
+    "services": [
+        {
+            "type": "endpoint",
+            "appId": "",
+            "appPassword": "",
+            "endpoint": "https://localhost:44334/api/messages",
+            "id": "e265f440-0333-11eb-b95c-95959eeea8a1",
+            "name": "https://localhost:44334/api/messages"
+        }
+    ],
+    "padlock": "",
+    "version": "2.0",
+    "overrides": null,
+    "path": "C:\\Users\\cathr\\source\\repos\\ailab\\BuildAnIntelligentBot\\config\\tutorial2.bot"
+}

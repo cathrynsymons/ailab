@@ -10,10 +10,13 @@ using ChatBot.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.Luis;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Integration;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Builder.PersonalityChat;
 using Microsoft.Bot.Builder.PersonalityChat.Core;
+using Microsoft.Bot.Builder.AI.QnA;
 using Microsoft.Bot.Configuration;
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Extensions.Configuration;
@@ -62,16 +65,23 @@ namespace ChatBot
     public void ConfigureServices(IServiceCollection services)
     {
       services.Configure<MySettings>(Configuration);
-#if DEBUG
+
       services.AddMvc();
-#else
-            services.AddMvc(mvcConfig =>
-            {
-                mvcConfig.Filters.Add(new BasicAuthFilter(Configuration["BasicAuthUsername"], Configuration["BasicAuthPassword"]));
-            });
-#endif
+//#if DEBUG
+//      services.AddMvc();
+//#else
+//      services.AddMvc(mvcConfig =>
+//    {
+//        mvcConfig.Filters.Add(new BasicAuthFilter(Configuration["BasicAuthUsername"], Configuration["BasicAuthPassword"]));
+//    });
+//#endif
 
       // create luis recognizer
+      var luisApplication = new LuisApplication(
+        Configuration["LuisAppId"],
+        Configuration["LuisAPIKey"],
+        "https://" + Configuration["LuisAPIHostName"]);
+      services.AddSingleton(new LuisRecognizer(luisApplication));
 
       // Create the credential provider to be used with the Bot Framework Adapter.
       services.AddSingleton<ICredentialProvider, ConfigurationCredentialProvider>();
@@ -103,9 +113,13 @@ namespace ChatBot
       services.AddSingleton(userState);
 
       // Add the personality chat middleware
+      var personalityChatOptions = new PersonalityChatMiddlewareOptions(
+            respondOnlyIfChat: true,
+            scoreThreshold: 0.5F,
+            botPersona: PersonalityChatPersona.Humorous);
+      services.AddSingleton(new PersonalityChatMiddleware(personalityChatOptions));
 
       // Add the translator speech middleware
-
       services.AddTransient<IBot, EchoBot>();
 
       // Create and register state accessors.
@@ -123,15 +137,33 @@ namespace ChatBot
         // State accessors enable other components to read and write individual properties of state.
         var accessors = new EchoBotAccessors(conversationState, userState)
         {
-          // Initialize Dialog State
-          ReservationState = userState.CreateProperty<ReservationData>("ReservationState"),
+            // Initialize Dialog State
+            ConversationDialogState = conversationState.CreateProperty<DialogState>("DialogState"),
+            ReservationState = userState.CreateProperty<ReservationData>("ReservationState"),
         };
 
         return accessors;
       });
 
-      // Add QnA Maker here
-    }
+        // Add QnA Maker here
+        // We add the the QnA service to the connected services.
+        // Create and register a QnA service and knowledgebase
+      services.AddSingleton(sp =>
+            {
+                return new QnAMaker(
+                    new QnAMakerEndpoint
+                    {
+                        EndpointKey = Configuration["QnAEndpointKey"],
+                        Host = Configuration["QnAHostname"],
+                        KnowledgeBaseId = Configuration["QnAKbId"],
+                    },
+                    new QnAMakerOptions
+                    {
+                        ScoreThreshold = 0.9f,
+                        Top = 1,
+                    });
+            });
+        }
 
     public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
     {

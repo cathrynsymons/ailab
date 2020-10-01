@@ -13,7 +13,7 @@ namespace ChatBot.Models
         public const string EnglishLanguage = "en";
         public const string SpanishLanguage = "es-es";
         public const string FrenchLanguage = "fr-fr";
-        public const string Site = "http://localhost:3978/images";
+        public const string Site = "http://localhost:44334/images";
         public const string ValidAudioContentTypes = @"^audio/(wav)|multipart/(form-data)$";
 
         // Text To Speech API
